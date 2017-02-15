@@ -4,35 +4,42 @@ from scipy.stats import spearmanr
 ######################
 ##Compute spearman correlation
 ######################
-##DO THIS USING THE USA AND STATE?FEMA REGION SPECIFIC SOVI
-
-# compute US base ranks for all drop 1 correlations
-# spearmanr(US_SoVI_Drop1_Score[])
-
-# rankContrib = (28-rankContrib) + 1
-# compare Fema regions and US
-
-# compare fema regions and states
-
-# compare states and US
-# US_SoVI_Drop1_Score.
-# compare drop 1 to full sovi
 
 local_path = '/Users/becky/'
 path = local_path + 'documents/sovi-validity/data/output/'
 
+#state geofips codes
 state_id = ['g51', 'g48', 'g36', 'g06', 'g13', 'g16', 'g17', 'g29', 'g46', 'g23g33g25']
 rank = pd.read_csv(path + 'County_in_State_Rank.csv')
 state = pd.read_csv(path + 'State_Sovi_Score.csv')
+
+# create column names for dataframe based on state ids
+# columns for r values
+corr = [s + '_r' for s in state_id]
+# columns for p values
+pval = [x + '_p' for x in state_id]
+cols = corr + pval
+# create dataframe to store results
+state_results = pd.DataFrame(index = ['Region', 'US'], columns=cols)
+
 for ID in state_id:
     print ID
     st = state[state['state_id'] == ID]
     select = rank[rank['Geo_FIPS'].isin(st['Geo_FIPS'])]
+    st_reg = spearmanr(select['state_sovi_rank'], select['fema_region_sovi_rank'])
+    st_US = spearmanr(select['state_sovi_rank'], select['us_sovi_rank'])
+    state_results[ID+'_r']['Region'] = st_reg[0]
+    state_results[ID+'_p']['Region'] = st_reg[1]
+    state_results[ID+'_r']['US'] = st_US[0]
+    state_results[ID+'_p']['US'] = st_US[1]
+    '''
     print "State: Region"
     print spearmanr(select['state_sovi_rank'], select['fema_region_sovi_rank'])
     print "State: US"
     print spearmanr(select['state_sovi_rank'], select['us_sovi_rank'])
     print "\n"
+    '''
+state_results.to_csv(path + 'spearman_state.csv')
 
 US_Sovi_Score = pd.read_csv(path + 'US_Sovi_Score.csv', index_col='Geo_FIPS')
 FEMA_Region_Sovi_Score = pd.read_csv(path + 'FEMA_Region_Sovi_Score.csv', index_col='Geo_FIPS')
@@ -51,12 +58,21 @@ for region in regionList:
 
 county_in_region_rank.to_csv(path + 'County_in_Region_Rank.csv')
 
+corrReg = [s + '_r' for s in regionList]
+# columns for p values
+pvalReg = [x + '_p' for x in regionList]
+colsReg = corrReg + pvalReg
+# create dataframe to store results
+region_results = pd.DataFrame(index = ['US'], columns=colsReg)
+
 for ID in regionList:
     print ID
     rg = FEMA_Region_Sovi_Score[FEMA_Region_Sovi_Score['fema_region'] == ID]
     rank = pd.read_csv(path + 'County_in_Region_Rank.csv')
     select = rank[rank['Geo_FIPS'].isin(rg.index)]
-    print spearmanr(select['fema_region_sovi_rank'], select['us_sovi_rank'])
-    
+    reg_us = spearmanr(select['fema_region_sovi_rank'], select['us_sovi_rank'])
+    region_results[ID+'_r'] = reg_us[0]
+    region_results[ID+'_p'] = reg_us[1]
+region_results.to_csv(path + 'spearman_region.csv')
     
     
